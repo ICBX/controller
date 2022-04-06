@@ -10,21 +10,21 @@ type (
 
 //goland:noinspection ALL
 const (
-	NormalRating VideoRating = iota
+	NormalRating VideoRating = iota + 1
 	KidsRating
 	AgeRestrictedRating
 )
 
 //goland:noinspection ALL
 const (
-	PublicPrivacyStatus PrivacyStatus = iota
+	PublicPrivacyStatus PrivacyStatus = iota + 1
 	PrivatePrivacyStatus
 	UnlistedPrivacyStatus
 )
 
 //goland:noinspection ALL
 const (
-	VideoBlobType BlobType = iota
+	VideoBlobType BlobType = iota + 1
 	ThumbnailBlobType
 )
 
@@ -50,9 +50,9 @@ type Video struct {
 	ChannelID     string
 	Title         string
 	Description   string
-	ViewCount     uint
-	LikeCount     uint
-	CommentCount  uint
+	ViewCount     uint64
+	LikeCount     uint64
+	CommentCount  uint64
 	Tags          string
 	VideoLength   uint
 	Rating        VideoRating
