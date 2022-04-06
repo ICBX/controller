@@ -3,35 +3,35 @@ package main
 import "time"
 
 type (
-	VideoRating   string
-	PrivacyStatus string
-	BlobType      string
+	VideoRating   uint
+	PrivacyStatus uint
+	BlobType      uint
 )
 
 //goland:noinspection ALL
 const (
-	NormalRating        VideoRating = "normal"
-	KidsRating          VideoRating = "kids"
-	AgeRestrictedRating VideoRating = "age-restricted"
+	NormalRating VideoRating = iota
+	KidsRating
+	AgeRestrictedRating
 )
 
 //goland:noinspection ALL
 const (
-	PublicPrivacyStatus   PrivacyStatus = "public"
-	PrivatePrivacyStatus  PrivacyStatus = "private"
-	UnlistedPrivacyStatus PrivacyStatus = "unlisted"
+	PublicPrivacyStatus PrivacyStatus = iota
+	PrivatePrivacyStatus
+	UnlistedPrivacyStatus
 )
 
 //goland:noinspection ALL
 const (
-	VideoBlobType     BlobType = "video"
-	ThumbnailBlobType BlobType = "thumbnail"
+	VideoBlobType BlobType = iota
+	ThumbnailBlobType
 )
 
 ////
 
 type User struct {
-	ID       uint
+	ID       uint   `gorm:"autoIncrement"`
 	Name     string `gorm:"not null" gorm:"unique"`
 	Email    string `gorm:"not null" gorm:"unique"`
 	Password string `gorm:"not null"`
@@ -59,7 +59,7 @@ type Video struct {
 }
 
 type VideoHistory struct {
-	ID uint
+	ID uint `gorm:"autoIncrement"`
 
 	VideoID string `gorm:"not null"`
 	Video   *Video
@@ -71,14 +71,14 @@ type VideoHistory struct {
 }
 
 type BlobDownloader struct {
-	ID     uint
+	ID     uint     `gorm:"autoIncrement"`
 	Name   string   `gorm:"not null"`
 	Secret string   `gorm:"not null"`
 	Videos []*Video `gorm:"many2many:VideosBlobDownloader"`
 }
 
 type BlobLocation struct {
-	ID uint
+	ID uint `gorm:"autoIncrement"`
 
 	VideoID string `gorm:"not null"`
 	Video   *Video
@@ -92,25 +92,22 @@ type BlobLocation struct {
 }
 
 type VideoViewCountHistory struct {
-	ID    uint
-	Views uint64 `gorm:"not null"`
-
+	ID      uint   `gorm:"autoIncrement"`
 	VideoID string `gorm:"not null"`
 	Video   *Video
+	Views   uint64 `gorm:"not null"`
 }
 
 type VideoLikeCountHistory struct {
-	ID    uint
-	Likes uint64 `gorm:"not null"`
-
+	ID      uint   `gorm:"autoIncrement"`
 	VideoID string `gorm:"not null"`
 	Video   *Video
+	Likes   uint64 `gorm:"not null"`
 }
 
 type VideoCommentCountHistory struct {
-	ID       uint
+	ID       uint   `gorm:"autoIncrement"`
+	VideoID  string `gorm:"not null"`
+	Video    *Video
 	Comments uint64 `gorm:"not null"`
-
-	VideoID string `gorm:"not null"`
-	Video   *Video
 }
