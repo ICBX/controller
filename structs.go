@@ -30,6 +30,12 @@ const (
 
 ////
 
+type APIKey struct {
+	ID      uint   `gorm:"autoIncrement"`
+	Key     string `gorm:"not null"`
+	Comment string
+}
+
 type User struct {
 	ID       uint   `gorm:"autoIncrement"`
 	Name     string `gorm:"not null" gorm:"unique"`

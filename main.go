@@ -14,9 +14,11 @@ func init() {
 func main() {
 	db, err := gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
 	if err != nil {
-		panic(err)
+		log.WithError(err).Fatal("cannot open database")
+		return
 	}
 	if err = db.AutoMigrate(
+		&APIKey{},
 		&User{},
 		&Video{},
 		&VideoHistory{},
@@ -26,7 +28,8 @@ func main() {
 		&VideoLikeCountHistory{},
 		&VideoCommentCountHistory{},
 	); err != nil {
-		panic(err)
+		log.WithError(err).Fatal("cannot migrate db")
+		return
 	}
 	log.Info("OK!")
 }
