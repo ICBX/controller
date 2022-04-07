@@ -99,6 +99,10 @@ func updateJob(service *youtube.Service, db *gorm.DB, v *Video) (dl bool, err er
 		}
 	)
 
+	if r.Snippet.ChannelId != "" {
+		v.ChannelID = r.Snippet.ChannelId
+	}
+
 	// title
 	if err = check(v.Title, r.Snippet.Title, "title"); err != nil {
 		return
