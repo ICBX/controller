@@ -19,19 +19,6 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-var part = []string{
-	"contentDetails",
-	"id",
-	"liveStreamingDetails",
-	"localizations",
-	"player",
-	"recordingDetails",
-	"snippet",
-	"statistics",
-	"status",
-	"topicDetails",
-}
-
 func main() {
 	// YouTube service
 	service, err := youtube.NewService(context.Background(), option.WithAPIKey(os.Getenv("API_KEY")))

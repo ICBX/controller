@@ -54,7 +54,7 @@ type Video struct {
 	LikeCount     uint64
 	CommentCount  uint64
 	Tags          string
-	VideoLength   uint
+	VideoLength   string
 	Rating        VideoRating
 	PublishedAt   *time.Time
 	PrivacyStatus PrivacyStatus
@@ -101,19 +101,22 @@ type VideoViewCountHistory struct {
 	ID      uint   `gorm:"autoIncrement"`
 	VideoID string `gorm:"not null"`
 	Video   *Video
-	Views   uint64 `gorm:"not null"`
+	Views   uint64    `gorm:"not null"`
+	Time    time.Time `gorm:"not null"`
 }
 
 type VideoLikeCountHistory struct {
 	ID      uint   `gorm:"autoIncrement"`
 	VideoID string `gorm:"not null"`
 	Video   *Video
-	Likes   uint64 `gorm:"not null"`
+	Likes   uint64    `gorm:"not null"`
+	Time    time.Time `gorm:"not null"`
 }
 
 type VideoCommentCountHistory struct {
 	ID       uint   `gorm:"autoIncrement"`
 	VideoID  string `gorm:"not null"`
 	Video    *Video
-	Comments uint64 `gorm:"not null"`
+	Comments uint64    `gorm:"not null"`
+	Time     time.Time `gorm:"not null"`
 }
