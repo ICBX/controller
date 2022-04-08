@@ -51,7 +51,7 @@ func main() {
 	log.Info("OK!")
 
 	c := cron.New(cron.WithSeconds())
-	if _, err = c.AddFunc("*/10 * * * * *", func() {
+	if _, err = c.AddFunc("0 */1 * * * *", func() {
 		log.Debug("[Meta-Update] Checking...")
 
 		var videos []*Video

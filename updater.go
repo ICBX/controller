@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"github.com/apex/log"
 	"google.golang.org/api/youtube/v3"
@@ -85,8 +86,8 @@ func updateJob(service *youtube.Service, db *gorm.DB, v *Video) (dl bool, err er
 	var (
 		r     = resp.Items[0]
 		t     = time.Now()
-		check = func(old, new, field string) error {
-			if old == new {
+		check = func(fetched bool, old, new, field string) error {
+			if fetched || old == new {
 				return nil
 			}
 			return db.Create(&VideoHistory{
@@ -103,28 +104,29 @@ func updateJob(service *youtube.Service, db *gorm.DB, v *Video) (dl bool, err er
 		v.ChannelID = r.Snippet.ChannelId
 	}
 
-	// title
-	if err = check(v.Title, r.Snippet.Title, "title"); err != nil {
+	fetched := v.Fetched.Valid && v.Fetched.Bool
+
+	if err = check(fetched, v.Title, r.Snippet.Title, "title"); err != nil {
 		return
 	}
 	v.Title = r.Snippet.Title
 
 	// description
-	if err = check(v.Description, r.Snippet.Description, "desc"); err != nil {
+	if err = check(fetched, v.Description, r.Snippet.Description, "desc"); err != nil {
 		return
 	}
 	v.Description = r.Snippet.Description
 
 	// tags
 	tags := strings.Join(r.Snippet.Tags, ",")
-	if err = check(v.Tags, tags, "tags"); err != nil {
+	if err = check(fetched, v.Tags, tags, "tags"); err != nil {
 		return
 	}
 	v.Tags = tags
 
 	// video length
 	if det := r.ContentDetails; det != nil {
-		if err = check(v.VideoLength, det.Duration, "length"); err != nil {
+		if err = check(fetched, v.VideoLength, det.Duration, "length"); err != nil {
 			return
 		}
 		if v.VideoLength != det.Duration {
@@ -166,6 +168,20 @@ func updateJob(service *youtube.Service, db *gorm.DB, v *Video) (dl bool, err er
 			}
 		}
 	}
+
+	// force set dl to true if not already fetched
+	if !fetched {
+		dl = true
+	}
+
+	// mark video as fetched
+	v.Fetched = sql.NullBool{
+		Bool:  true,
+		Valid: true,
+	}
+
+	// update last updated timestamp
+	v.LastUpdated = &t
 
 	err = db.Updates(v).Error
 	return

@@ -1,6 +1,9 @@
 package main
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type (
 	VideoRating   uint
@@ -58,7 +61,10 @@ type Video struct {
 	Rating        VideoRating
 	PublishedAt   *time.Time
 	PrivacyStatus PrivacyStatus
-	LastUpdated   *time.Time
+
+	// Fetched is set after initial meta refresh
+	Fetched     sql.NullBool `gorm:"not null;default:false"`
+	LastUpdated *time.Time
 
 	Users    []*User           `gorm:"many2many:VideoUsers"`
 	Blobbers []*BlobDownloader `gorm:"many2many:VideosBlobDownloader"`
