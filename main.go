@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/cli"
+	"github.com/gofiber/fiber/v2"
 	"github.com/robfig/cron/v3"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
@@ -75,4 +76,16 @@ func main() {
 	}
 
 	c.Run()
+
+	// start REST webserver
+	app := fiber.New()
+
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Hello, World 👋!")
+	})
+
+	app.Post("/video/add", addNewVideo)
+
+	app.Listen(":3000")
+
 }

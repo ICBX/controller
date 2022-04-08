@@ -120,3 +120,9 @@ type VideoCommentCountHistory struct {
 	Comments uint64    `gorm:"not null"`
 	Time     time.Time `gorm:"not null"`
 }
+
+// api payloads
+type NewVideoPayload struct {
+	User    string `json:"user"`
+	VideoID string `json:"video"`
+}
