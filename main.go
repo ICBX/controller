@@ -2,21 +2,76 @@ package main
 
 import (
 	"context"
+	"github.com/ICBX/penguin/internal/rest"
+	"github.com/ICBX/penguin/internal/tasks"
+	"github.com/ICBX/penguin/pkg/common"
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/cli"
-	"github.com/gofiber/fiber/v2"
 	"github.com/robfig/cron/v3"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 )
 
 func init() {
 	log.SetHandler(cli.Default)
 	log.SetLevel(log.DebugLevel)
+}
+
+func startCron(ctx context.Context, wg *sync.WaitGroup, service *youtube.Service, db *gorm.DB) (err error) {
+	defer wg.Done()
+
+	c := cron.New(cron.WithSeconds())
+	if _, err = c.AddFunc("0 */1 * * * *", func() {
+		log.Debug("[Meta-Update] Checking...")
+
+		var videos []*common.Video
+		if err = db.Find(&videos).Error; err != nil {
+			log.WithError(err).Warn("[Meta-Update] cannot fetch videos from database")
+			return
+		}
+
+		log.Infof("[Meta-Update] Updating %d videos...", len(videos))
+
+		swStart := time.Now()
+		if videos, err = tasks.UpdateVideos(service, db, videos); err != nil {
+			log.WithError(err).Warn("cannot update videos")
+		}
+		swStop := time.Now()
+
+		log.Infof("[Meta-Update] Done! Took %s. %d videos should be downloaded.",
+			swStop.Sub(swStart).String(), len(videos))
+	}); err != nil {
+		log.WithError(err).Fatal("Cannot create updater cronjob")
+		return
+	}
+
+	go c.Run()
+	<-ctx.Done()
+	c.Stop()
+
+	return
+}
+
+func startRESTApi(ctx context.Context, wg *sync.WaitGroup, db *gorm.DB) error {
+	// start REST webserver
+	r := rest.New(db)
+
+	go func() {
+		<-ctx.Done()
+		if err := r.Shutdown(); err != nil {
+			log.WithError(err).Warn("Cannot shutdown REST api")
+		}
+		wg.Done()
+	}()
+
+	return r.Listen(":3000")
 }
 
 func main() {
@@ -34,58 +89,46 @@ func main() {
 		return
 	}
 	log.Info("Migrating Database...")
-	if err = db.AutoMigrate(
-		&APIKey{},
-		&User{},
-		&Video{},
-		&VideoHistory{},
-		&BlobDownloader{},
-		&BlobLocation{},
-		&VideoViewCountHistory{},
-		&VideoLikeCountHistory{},
-		&VideoCommentCountHistory{},
-	); err != nil {
+	if err = db.AutoMigrate(common.TableModels...); err != nil {
 		log.WithError(err).Fatal("cannot migrate db")
 		return
 	}
 	log.Info("OK!")
 
-	c := cron.New(cron.WithSeconds())
-	if _, err = c.AddFunc("0 */1 * * * *", func() {
-		log.Debug("[Meta-Update] Checking...")
+	// services
+	ctx, stop := context.WithCancel(context.Background())
+	go func() {
+		c := make(chan os.Signal, 1)
+		log.Info("Waiting for SIGINT and SIGTERM ...")
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		<-c
+		log.Warn("Shutting down...")
+		stop()
+	}()
+	var wg sync.WaitGroup
 
-		var videos []*Video
-		if err = db.Find(&videos).Error; err != nil {
-			log.WithError(err).Warn("[Meta-Update] cannot fetch videos from database")
-			return
+	log.Info("[SRV] Starting service cron#updater")
+	wg.Add(1)
+	go func() {
+		err := startCron(ctx, &wg, service, db)
+		if err != nil {
+			stop()
+			log.WithError(err).Warn("Cannot start cron service")
 		}
+	}()
 
-		log.Infof("[Meta-Update] Updating %d videos...", len(videos))
-
-		swStart := time.Now()
-		if videos, err = updateVideos(service, db, videos); err != nil {
-			log.WithError(err).Warn("cannot update videos")
+	log.Info("[SRV] Starting service api#rest")
+	wg.Add(1)
+	go func() {
+		err := startRESTApi(ctx, &wg, db)
+		if err != nil {
+			if err != nil {
+				stop()
+				log.WithError(err).Warn("Cannot start rest service")
+			}
 		}
-		swStop := time.Now()
+	}()
 
-		log.Infof("[Meta-Update] Done! Took %s. %d videos should be downloaded.",
-			swStop.Sub(swStart).String(), len(videos))
-	}); err != nil {
-		log.WithError(err).Fatal("Cannot start meta updater")
-		return
-	}
-
-	c.Run()
-
-	// start REST webserver
-	app := fiber.New()
-
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Hello, World 👋!")
-	})
-
-	app.Post("/video/add", addNewVideo)
-
-	app.Listen(":3000")
-
+	wg.Wait()
+	log.Info("All Services Shut Down.")
 }

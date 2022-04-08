@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"database/sql"
@@ -24,6 +24,12 @@ const (
 	PrivatePrivacyStatus
 	UnlistedPrivacyStatus
 )
+
+var PrivateStatusByName = map[string]PrivacyStatus{
+	"public":   PublicPrivacyStatus,
+	"private":  PrivatePrivacyStatus,
+	"unlisted": UnlistedPrivacyStatus,
+}
 
 //goland:noinspection ALL
 const (
@@ -127,8 +133,14 @@ type VideoCommentCountHistory struct {
 	Time     time.Time `gorm:"not null"`
 }
 
-// api payloads
-type NewVideoPayload struct {
-	User    string `json:"user"`
-	VideoID string `json:"video"`
+var TableModels = []interface{}{
+	&APIKey{},
+	&User{},
+	&Video{},
+	&VideoHistory{},
+	&BlobDownloader{},
+	&BlobLocation{},
+	&VideoViewCountHistory{},
+	&VideoLikeCountHistory{},
+	&VideoCommentCountHistory{},
 }
