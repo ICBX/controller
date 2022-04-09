@@ -4,6 +4,6 @@ import "errors"
 
 var ErrVideoNotFound = errors.New("video not found")
 
-var ErrVideoAlreadyAdded = errors.New("This video already exists in your database")
+var ErrVideoAlreadyAdded = errors.New("this video already exists in your database")
 
-var ErrUserDoesntExist = errors.New("The specified user wasn't found")
+var ErrUserDoesNotExist = errors.New("the specified user wasn't found")

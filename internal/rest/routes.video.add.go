@@ -3,6 +3,7 @@ package rest
 import (
 	"github.com/ICBX/penguin/pkg/common"
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm/clause"
 )
 
 // rest payloads
@@ -13,41 +14,33 @@ type newVideoPayload struct {
 
 func (s *Server) routeVideoAdd(ctx *fiber.Ctx) (err error) {
 	var req newVideoPayload
-
 	if err = ctx.BodyParser(&req); err != nil {
 		return
 	}
 
-	user := common.User{}
-	r := s.db.Find(&user, "ID = ?", req.UserID)
-
-	if r.RowsAffected != 1 {
-		return common.ErrUserDoesntExist
-	}
-
-	video := common.Video{
-		ID: req.VideoID,
+	var user common.User
+	if r := s.db.Find(&user, "ID = ?", req.UserID); r.RowsAffected != 1 {
+		return common.ErrUserDoesNotExist
 	}
 
 	// check if video already in database
-	r = s.db.Find(&video, "ID = ?", req.VideoID)
-	if r.RowsAffected == 1 {
-
+	var video common.Video
+	if r := s.db.Preload("Users").Find(&video, "ID = ?", req.VideoID); r.RowsAffected == 1 {
 		// check if requesting user already added that video
 		for _, u := range video.Users {
 			if u.ID == req.UserID {
 				return common.ErrVideoAlreadyAdded
 			}
 		}
-
-		// otherwise add requesting user to userlist
-		video.Users = append(video.Users, &user)
-		s.db.Updates(video)
+	} else {
+		video.ID = req.VideoID
 	}
 
-	// otherwise add empty video to db
+	// add user to video's user list
 	video.Users = append(video.Users, &user)
-	s.db.Create(&video)
 
-	return nil
+	// save/update video to DB
+	return s.db.Clauses(clause.OnConflict{UpdateAll: true}).
+		Create(&video).
+		Error
 }

@@ -100,6 +100,14 @@ func updateJob(service *youtube.Service, db *gorm.DB, v *common.Video) (dl bool,
 	if len(resp.Items) > 0 {
 		var r = resp.Items[0]
 
+		// published at
+		var pa time.Time
+		if pa, err = time.Parse(time.RFC3339, r.Snippet.PublishedAt); err != nil {
+			log.WithError(err).Warnf("[Video %s] cannot parse published at", v.ID)
+		} else {
+			v.PublishedAt = &pa
+		}
+
 		// load privacy state by api response
 		if r.Status != nil {
 			if state, ok := common.PrivateStatusByName[r.Status.PrivacyStatus]; ok {
@@ -140,6 +148,20 @@ func updateJob(service *youtube.Service, db *gorm.DB, v *common.Video) (dl bool,
 			}
 			v.VideoLength = det.Duration
 		}
+
+		// rating
+		var rating common.VideoRating
+		if r.Status != nil && r.Status.MadeForKids {
+			rating = common.KidsRating
+		} else if r.ContentDetails.ContentRating.YtRating == "ytAgeRestricted" {
+			rating = common.AgeRestrictedRating
+		} else {
+			rating = common.NormalRating
+		}
+		if err = check(fetched, strconv.Itoa(int(v.Rating)), strconv.Itoa(int(rating)), "rating"); err != nil {
+			return
+		}
+		v.Rating = rating
 
 		// view count
 		if r.Statistics != nil {
