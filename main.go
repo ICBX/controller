@@ -54,6 +54,8 @@ func startCron(ctx context.Context, wg *sync.WaitGroup, service *youtube.Service
 
 	go c.Run()
 	<-ctx.Done()
+
+	log.Info("[task#update] Shutting down...")
 	c.Stop()
 
 	return
@@ -65,6 +67,7 @@ func startRESTApi(ctx context.Context, wg *sync.WaitGroup, db *gorm.DB) error {
 
 	go func() {
 		<-ctx.Done()
+		log.Info("[srv#rest] Shutting down...")
 		if err := r.Shutdown(); err != nil {
 			log.WithError(err).Warn("Cannot shutdown REST api")
 		}
@@ -96,15 +99,9 @@ func main() {
 	log.Info("OK!")
 
 	// services
-	ctx, stop := context.WithCancel(context.Background())
-	go func() {
-		c := make(chan os.Signal, 1)
-		log.Info("Waiting for SIGINT and SIGTERM ...")
-		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-		<-c
-		log.Warn("Shutting down...")
-		stop()
-	}()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	var wg sync.WaitGroup
 
 	log.Info("[SRV] Starting service cron#updater")
