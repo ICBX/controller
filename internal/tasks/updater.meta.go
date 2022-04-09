@@ -77,14 +77,6 @@ func updateJob(service *youtube.Service, db *gorm.DB, v *common.Video) (dl bool,
 	if resp, err = service.Videos.List(metaUpdateParts).Id(v.ID).Do(); err != nil {
 		return
 	}
-	if len(resp.Items) < 1 {
-		// video is most likely private
-		if v.PrivacyStatus != common.PrivatePrivacyStatus {
-			v.PrivacyStatus = common.PrivatePrivacyStatus
-		}
-
-		return false, common.ErrVideoNotFound
-	}
 
 	var (
 		t       = time.Now()
