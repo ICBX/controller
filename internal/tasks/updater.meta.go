@@ -105,7 +105,7 @@ func updateJob(service *youtube.Service, db *gorm.DB, v *common.Video) (dl bool,
 		if pa, err = time.Parse(time.RFC3339, r.Snippet.PublishedAt); err != nil {
 			log.WithError(err).Warnf("[Video %s] cannot parse published at", v.ID)
 		} else {
-			v.PublishedAt = &pa
+			v.PublishedAt = sql.NullTime{Valid: true, Time: pa}
 		}
 
 		// load privacy state by api response
@@ -196,8 +196,8 @@ func updateJob(service *youtube.Service, db *gorm.DB, v *common.Video) (dl bool,
 				}
 			}
 		}
-	} else if fetched {
-		// if api doesn't return a video we fetched earlier, the video is most likely private
+	} else {
+		// if api doesn't return a video the video is most likely private
 		privacy = common.PrivatePrivacyStatus
 	}
 
@@ -226,7 +226,7 @@ func updateJob(service *youtube.Service, db *gorm.DB, v *common.Video) (dl bool,
 	}
 
 	// update last updated timestamp
-	v.LastUpdated = &t
+	v.LastUpdated = sql.NullTime{Valid: true, Time: t}
 
 	err = db.Updates(v).Error
 	return

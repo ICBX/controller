@@ -40,13 +40,13 @@ const (
 ////
 
 type APIKey struct {
-	ID      uint   `gorm:"primaryKey,autoIncrement"`
+	ID      uint   `gorm:"primaryKey;autoIncrement"`
 	Key     string `gorm:"not null"`
 	Comment string
 }
 
 type User struct {
-	ID       uint   `gorm:"primaryKey,autoIncrement"`
+	ID       uint   `gorm:"primaryKey;autoIncrement"`
 	Name     string `gorm:"not null" gorm:"unique"`
 	Email    string `gorm:"not null" gorm:"unique"`
 	Password string `gorm:"not null"`
@@ -65,19 +65,19 @@ type Video struct {
 	Tags          string
 	VideoLength   string
 	Rating        VideoRating
-	PublishedAt   *time.Time
+	PublishedAt   sql.NullTime
 	PrivacyStatus PrivacyStatus
 
 	// Fetched is set after initial meta refresh
 	Fetched     sql.NullBool `gorm:"not null;default:false"`
-	LastUpdated *time.Time
+	LastUpdated sql.NullTime
 
 	Users    []*User           `gorm:"many2many:VideoUsers"`
 	Blobbers []*BlobDownloader `gorm:"many2many:VideosBlobDownloader"`
 }
 
 type VideoHistory struct {
-	ID uint `gorm:"primaryKey,autoIncrement"`
+	ID uint `gorm:"primaryKey;autoIncrement"`
 
 	VideoID string `gorm:"not null"`
 	Video   *Video
@@ -89,14 +89,14 @@ type VideoHistory struct {
 }
 
 type BlobDownloader struct {
-	ID     uint     `gorm:"primaryKey,autoIncrement"`
+	ID     uint     `gorm:"primaryKey;autoIncrement"`
 	Name   string   `gorm:"not null"`
 	Secret string   `gorm:"not null"`
 	Videos []*Video `gorm:"many2many:VideosBlobDownloader"`
 }
 
 type BlobLocation struct {
-	ID uint `gorm:"primaryKey,autoIncrement"`
+	ID uint `gorm:"primaryKey;autoIncrement"`
 
 	VideoID string `gorm:"not null"`
 	Video   *Video
@@ -110,7 +110,7 @@ type BlobLocation struct {
 }
 
 type VideoViewCountHistory struct {
-	ID      uint   `gorm:"primaryKey,autoIncrement"`
+	ID      uint   `gorm:"primaryKey;autoIncrement"`
 	VideoID string `gorm:"not null"`
 	Video   *Video
 	Views   uint64    `gorm:"not null"`
@@ -118,7 +118,7 @@ type VideoViewCountHistory struct {
 }
 
 type VideoLikeCountHistory struct {
-	ID      uint   `gorm:"primaryKey,autoIncrement"`
+	ID      uint   `gorm:"primaryKey;autoIncrement"`
 	VideoID string `gorm:"not null"`
 	Video   *Video
 	Likes   uint64    `gorm:"not null"`
@@ -126,7 +126,7 @@ type VideoLikeCountHistory struct {
 }
 
 type VideoCommentCountHistory struct {
-	ID       uint   `gorm:"primaryKey,autoIncrement"`
+	ID       uint   `gorm:"primaryKey;autoIncrement"`
 	VideoID  string `gorm:"not null"`
 	Video    *Video
 	Comments uint64    `gorm:"not null"`
