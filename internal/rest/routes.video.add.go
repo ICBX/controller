@@ -3,13 +3,14 @@ package rest
 import (
 	"github.com/ICBX/penguin/pkg/common"
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm/clause"
+	"net/http"
+	"strconv"
 )
 
 // rest payloads
 type newVideoPayload struct {
-	UserID  uint   `json:"userID"`
-	VideoID string `json:"videoID"`
+	VideoID  string `json:"videoID"`
+	Blobbers []uint `json:"blobbers"`
 }
 
 func (s *Server) routeVideoAdd(ctx *fiber.Ctx) (err error) {
@@ -18,29 +19,29 @@ func (s *Server) routeVideoAdd(ctx *fiber.Ctx) (err error) {
 		return
 	}
 
-	var user common.User
-	if r := s.db.Find(&user, "ID = ?", req.UserID); r.RowsAffected != 1 {
-		return common.ErrUserDoesNotExist
-	}
+	video := &common.Video{ID: req.VideoID}
 
 	// check if video already in database
-	var video common.Video
-	if r := s.db.Preload("Users").Find(&video, "ID = ?", req.VideoID); r.RowsAffected == 1 {
-		// check if requesting user already added that video
-		for _, u := range video.Users {
-			if u.ID == req.UserID {
-				return common.ErrVideoAlreadyAdded
-			}
-		}
-	} else {
-		video.ID = req.VideoID
+	var count int64
+	if err = s.db.Model(video).Where(video).Count(&count).Error; err != nil {
+		return
+	}
+	if count > 0 {
+		return fiber.NewError(http.StatusConflict, "video already added")
 	}
 
-	// add user to video's user list
-	video.Users = append(video.Users, &user)
+	// add blobbers to video
+	for _, bid := range req.Blobbers {
+		var blobber *common.BlobDownloader
+		if err = s.db.Where(&common.BlobDownloader{ID: bid}).First(&blobber).Error; err != nil {
+			return
+		}
+		if blobber == nil {
+			return fiber.NewError(404, "blobber with id "+strconv.Itoa(int(bid))+" not found")
+		}
+		video.Blobbers = append(video.Blobbers, blobber)
+	}
 
 	// save/update video to DB
-	return s.db.Clauses(clause.OnConflict{UpdateAll: true}).
-		Create(&video).
-		Error
+	return s.db.Create(video).Error
 }

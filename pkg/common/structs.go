@@ -45,15 +45,6 @@ type APIKey struct {
 	Comment string
 }
 
-type User struct {
-	ID       uint   `gorm:"primaryKey;autoIncrement"`
-	Name     string `gorm:"not null" gorm:"unique"`
-	Email    string `gorm:"not null" gorm:"unique"`
-	Password string `gorm:"not null"`
-
-	Videos []*Video `gorm:"many2many:VideoUsers"`
-}
-
 type Video struct {
 	ID            string
 	ChannelID     string
@@ -72,7 +63,6 @@ type Video struct {
 	Fetched     sql.NullBool `gorm:"not null;default:false"`
 	LastUpdated sql.NullTime
 
-	Users    []*User           `gorm:"many2many:VideoUsers"`
 	Blobbers []*BlobDownloader `gorm:"many2many:VideosBlobDownloader"`
 }
 
@@ -135,7 +125,6 @@ type VideoCommentCountHistory struct {
 
 var TableModels = []interface{}{
 	&APIKey{},
-	&User{},
 	&Video{},
 	&VideoHistory{},
 	&BlobDownloader{},
