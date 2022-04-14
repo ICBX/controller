@@ -12,6 +12,7 @@ import (
 	"google.golang.org/api/youtube/v3"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"os"
 	"os/signal"
 	"sync"
@@ -47,6 +48,11 @@ func startCron(ctx context.Context, wg *sync.WaitGroup, service *youtube.Service
 
 		log.Infof("[Meta-Update] Done! Took %s. %d videos should be downloaded.",
 			swStop.Sub(swStart).String(), len(videos))
+
+		// add videos to download queue
+		for _, v := range videos {
+			addToQueue(db, v)
+		}
 	}); err != nil {
 		log.WithError(err).Fatal("Cannot create updater cronjob")
 		return
@@ -128,4 +134,23 @@ func main() {
 
 	wg.Wait()
 	log.Info("All Services Shut Down.")
+}
+
+func addToQueue(db *gorm.DB, v *common.Video) (err error) {
+	// fetch all blobbers for the video
+	if err = db.Preload("Blobbers").Where(v).First(v).Error; err != nil {
+		return
+	}
+
+	// add video to queue
+	for _, b := range v.Blobbers {
+		if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&common.Queue{
+			VideoID:   v.ID,
+			BlobberID: b.ID,
+		}).Error; err != nil {
+			return
+		}
+	}
+
+	return
 }

@@ -78,6 +78,11 @@ type VideoHistory struct {
 	UpdatedAt time.Time `gorm:"not null"`
 }
 
+type Queue struct {
+	VideoID   string `gorm:"primaryKey"`
+	BlobberID uint   `gorm:"primaryKey"`
+}
+
 type BlobDownloader struct {
 	ID     uint     `gorm:"primaryKey;autoIncrement"`
 	Name   string   `gorm:"not null"`
@@ -126,6 +131,7 @@ type VideoCommentCountHistory struct {
 var TableModels = []interface{}{
 	&APIKey{},
 	&Video{},
+	&Queue{},
 	&VideoHistory{},
 	&BlobDownloader{},
 	&BlobLocation{},
