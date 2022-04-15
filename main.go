@@ -51,7 +51,9 @@ func startCron(ctx context.Context, wg *sync.WaitGroup, service *youtube.Service
 
 		// add videos to download queue
 		for _, v := range videos {
-			addToQueue(db, v)
+			if err = addToQueue(db, v); err != nil {
+				return
+			}
 		}
 	}); err != nil {
 		log.WithError(err).Fatal("Cannot create updater cronjob")
@@ -141,9 +143,9 @@ func addToQueue(db *gorm.DB, v *common.Video) (err error) {
 	if err = db.Preload("Blobbers").Where(v).First(v).Error; err != nil {
 		return
 	}
-
 	// add video to queue
 	for _, b := range v.Blobbers {
+		log.Infof("Adding video %s to blobber-queue %d", v.ID, b.ID)
 		if err = db.Clauses(clause.OnConflict{DoNothing: true}).Create(&common.Queue{
 			VideoID:   v.ID,
 			BlobberID: b.ID,
@@ -151,6 +153,5 @@ func addToQueue(db *gorm.DB, v *common.Video) (err error) {
 			return
 		}
 	}
-
 	return
 }

@@ -7,39 +7,44 @@ import (
 )
 
 func (s *Server) routeBlobberPull(ctx *fiber.Ctx) (err error) {
-
 	// get blobber id from route
 	blobberID := ctx.Params("id")
 	if blobberID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Blobber ID is required")
 	}
-
-	// get blobber secret from headers
-	headers := ctx.GetReqHeaders()
-	blobberSecret, ok := headers["Blobber-Secret"]
-	if !ok {
-		return fiber.NewError(fiber.StatusUnauthorized, "no blobberID specified")
-	}
-
 	var blobberIDUint uint
-	blobberIDUint, err = convertStringToUint(blobberID)
-	if err != nil {
+	if blobberIDUint, err = convertStringToUint(blobberID); err != nil {
 		return
 	}
 
+	// get blobber secret from headers
+	blobberSecret := ctx.Get("Blobber-Secret")
+	if blobberSecret == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "no blobberID specified")
+	}
+
 	// check if blobber id exists and secret is correct
-	if r := s.db.Where(&common.BlobDownloader{ID: uint(blobberIDUint), Secret: blobberSecret}).First(&common.BlobDownloader{}); r.RowsAffected != 1 {
+	var blobber *common.BlobDownloader
+	if err = s.db.Where(&common.BlobDownloader{
+		ID:     blobberIDUint,
+		Secret: blobberSecret,
+	}).First(&blobber).Error; err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
+	}
+	if blobber == nil {
 		return fiber.NewError(fiber.StatusUnauthorized, "invalid blobberID or secret")
 	}
 
 	// return a list of videos to download
-	var videoIDS = make([]string, 0)
 	var queues []*common.Queue
-	s.db.Find(&queues, "blobber_id = ?", uint(blobberIDUint))
+	if err = s.db.Where(&common.Queue{BlobberID: blobberIDUint}).Find(&queues).Error; err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
 
-	// add all video ids
-	for _, q := range queues {
-		videoIDS = append(videoIDS, q.VideoID)
+	// collect video ids
+	var videoIDS = make([]string, len(queues))
+	for i, q := range queues {
+		videoIDS[i] = q.VideoID
 	}
 
 	err = ctx.JSON(videoIDS)
