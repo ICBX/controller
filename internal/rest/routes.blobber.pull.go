@@ -3,6 +3,7 @@ package rest
 import (
 	"github.com/ICBX/penguin/pkg/common"
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 	"strconv"
 )
 
@@ -24,15 +25,14 @@ func (s *Server) routeBlobberPull(ctx *fiber.Ctx) (err error) {
 	}
 
 	// check if blobber id exists and secret is correct
-	var blobber *common.BlobDownloader
 	if err = s.db.Where(&common.BlobDownloader{
 		ID:     blobberIDUint,
 		Secret: blobberSecret,
-	}).First(&blobber).Error; err != nil {
+	}).First(&common.BlobDownloader{}).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return fiber.NewError(fiber.StatusUnauthorized, "invalid blobberID or secret")
+		}
 		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
-	}
-	if blobber == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "invalid blobberID or secret")
 	}
 
 	// return a list of videos to download
