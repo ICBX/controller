@@ -58,6 +58,7 @@ type Video struct {
 	Rating        VideoRating
 	PublishedAt   sql.NullTime
 	PrivacyStatus PrivacyStatus
+	Active        bool `gorm:"default:true"`
 
 	// Fetched is set after initial meta refresh
 	Fetched     sql.NullBool `gorm:"not null;default:false"`

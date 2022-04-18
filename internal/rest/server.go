@@ -22,6 +22,7 @@ func New(db *gorm.DB) (s *Server) {
 	app.Post("/video/add", s.routeVideoAdd)
 	app.Get("/blobber/pull/:id", s.routeBlobberPull)
 	app.Post("/media/videos/:id/blobber", s.routeVideoAddBlobber)
+	app.Delete("/media/videos/:id", s.routeVideoDisable)
 	app.Post("/blobber/add", s.routeBlobberAdd)
 	// TODO: Add routes above 👆
 

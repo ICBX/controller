@@ -33,7 +33,7 @@ func startCron(ctx context.Context, wg *sync.WaitGroup, service *youtube.Service
 		log.Debug("[Meta-Update] Checking...")
 
 		var videos []*common.Video
-		if err = db.Find(&videos).Error; err != nil {
+		if err = db.Where(&common.Video{Active: true}).Find(&videos).Error; err != nil {
 			log.WithError(err).Warn("[Meta-Update] cannot fetch videos from database")
 			return
 		}

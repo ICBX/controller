@@ -42,6 +42,8 @@ func (s *Server) routeVideoAdd(ctx *fiber.Ctx) (err error) {
 		video.Blobbers = append(video.Blobbers, blobber)
 	}
 
+	video.Active = true
+
 	// save/update video to DB
 	return s.db.Create(video).Error
 }
