@@ -1,21 +1,23 @@
 package rest
 
 import (
+	"errors"
 	"github.com/ICBX/penguin/pkg/common"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/utils"
 	"gorm.io/gorm"
 	"strconv"
 )
 
 func (s *Server) routeBlobberPull(ctx *fiber.Ctx) (err error) {
 	// get blobber id from route
-	blobberID := ctx.Params("id")
+	blobberID := utils.CopyString(ctx.Params("id"))
 	if blobberID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Blobber ID is required")
 	}
 	var blobberIDUint uint
 	if blobberIDUint, err = convertStringToUint(blobberID); err != nil {
-		return
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	// get blobber secret from headers
@@ -29,15 +31,17 @@ func (s *Server) routeBlobberPull(ctx *fiber.Ctx) (err error) {
 		ID:     blobberIDUint,
 		Secret: blobberSecret,
 	}).First(&common.BlobDownloader{}).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid blobberID or secret")
 		}
-		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	// return a list of videos to download
 	var queues []*common.Queue
-	if err = s.db.Where(&common.Queue{BlobberID: blobberIDUint}).Find(&queues).Error; err != nil {
+	if err = s.db.Where(&common.Queue{
+		BlobberID: blobberIDUint,
+	}).Find(&queues).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
@@ -47,8 +51,7 @@ func (s *Server) routeBlobberPull(ctx *fiber.Ctx) (err error) {
 		videoIDS[i] = q.VideoID
 	}
 
-	err = ctx.JSON(videoIDS)
-	return
+	return ctx.Status(fiber.StatusOK).JSON(videoIDS)
 }
 
 // TODO: move to util
