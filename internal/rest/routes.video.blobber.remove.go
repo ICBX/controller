@@ -48,7 +48,14 @@ func (s *Server) routeVideoRemoveBlobber(ctx *fiber.Ctx) (err error) {
 		}
 	}
 
-	// TODO: add video to blobber 'remove' queue
+	// add video to blobber 'remove' queue
+	if err = s.db.Create(&common.Queue{
+		VideoID:   videoID,
+		BlobberID: blobberIDU,
+		Action:    common.RemoveBlob,
+	}).Error; err != nil {
+		return fiber.NewError(fiber.StatusConflict, err.Error())
+	}
 
 	return
 }

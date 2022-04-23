@@ -52,6 +52,7 @@ func (s *Server) routeVideoAddBlobber(ctx *fiber.Ctx) (err error) {
 	if err = s.db.Create(&common.Queue{
 		VideoID:   videoId,
 		BlobberID: req.BlobberID,
+		Action:    common.GetBlob,
 	}).Error; err != nil {
 		return fiber.NewError(fiber.StatusConflict, err.Error())
 	}

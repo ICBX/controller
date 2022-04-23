@@ -10,6 +10,12 @@ type (
 	VideoRating   uint
 	PrivacyStatus uint
 	BlobType      uint
+	QueueAction   uint
+)
+
+const (
+	GetBlob QueueAction = iota + 1
+	RemoveBlob
 )
 
 //goland:noinspection ALL
@@ -81,8 +87,9 @@ type VideoHistory struct {
 }
 
 type Queue struct {
-	VideoID   string `gorm:"primaryKey"`
-	BlobberID uint   `gorm:"primaryKey"`
+	VideoID   string      `gorm:"primaryKey"`
+	BlobberID uint        `gorm:"primaryKey"`
+	Action    QueueAction `gorm:"primaryKey"`
 }
 
 type BlobDownloader struct {

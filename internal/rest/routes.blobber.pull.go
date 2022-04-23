@@ -9,6 +9,11 @@ import (
 	"strconv"
 )
 
+type BlobberPullResponse struct {
+	Download []string `json:"download"`
+	Remove   []string `json:"remove"`
+}
+
 func (s *Server) routeBlobberPull(ctx *fiber.Ctx) (err error) {
 	// get blobber id from route
 	blobberID := utils.CopyString(ctx.Params("id"))
@@ -38,20 +43,34 @@ func (s *Server) routeBlobberPull(ctx *fiber.Ctx) (err error) {
 	}
 
 	// return a list of videos to download
-	var queues []*common.Queue
-	if err = s.db.Where(&common.Queue{
-		BlobberID: blobberIDUint,
-	}).Find(&queues).Error; err != nil {
+	var download []*common.Queue
+	if err = s.db.Where(&common.Queue{BlobberID: blobberIDUint, Action: common.GetBlob}).Find(&download).Error; err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	// collect video ids
-	var videoIDS = make([]string, len(queues))
-	for i, q := range queues {
-		videoIDS[i] = q.VideoID
+	// return a list of videos to remove
+	var remove []*common.Queue
+	if err = s.db.Where(&common.Queue{BlobberID: blobberIDUint, Action: common.RemoveBlob}).Find(&remove).Error; err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(videoIDS)
+	// collect video ids to download
+	var videoIDsDownload = make([]string, len(download))
+	for i, q := range download {
+		videoIDsDownload[i] = q.VideoID
+	}
+
+	// collect video ids to remove
+	var videoIDsRemove = make([]string, len(remove))
+	for i, q := range remove {
+		videoIDsRemove[i] = q.VideoID
+	}
+
+	err = ctx.Status(fiber.StatusOK).JSON(BlobberPullResponse{
+		Download: videoIDsDownload,
+		Remove:   videoIDsRemove,
+	})
+	return
 }
 
 // TODO: move to util
