@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/ICBX/penguin/pkg/common"
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 // rest payloads
@@ -22,10 +23,9 @@ func (s *Server) routeVideoAdd(ctx *fiber.Ctx) (err error) {
 
 	// check if video already in database
 	if err = s.db.Where(video).First(&common.Video{}).Error; err != nil {
-		if errors.Is(err, fiber.ErrNotFound) {
-			return fiber.NewError(fiber.StatusNotFound, "video not found")
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	// add blobbers to video
@@ -34,10 +34,9 @@ func (s *Server) routeVideoAdd(ctx *fiber.Ctx) (err error) {
 		if err = s.db.Where(&common.BlobDownloader{
 			ID: bid,
 		}).First(&blobber).Error; err != nil {
-			if errors.Is(err, fiber.ErrNotFound) {
-				return fiber.NewError(fiber.StatusNotFound, "blobber not found")
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 			}
-			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
 		video.Blobbers = append(video.Blobbers, &blobber)
 	}
