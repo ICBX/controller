@@ -16,6 +16,7 @@ import (
 // DELETE /media/videos/:id?state=enable
 func (s *Server) routeVideoDisable(ctx *fiber.Ctx) (err error) {
 	state := ctx.Query("state", "disable")
+	perm := ctx.Query("perm", "no")
 
 	where := &common.Video{
 		ID: utils.CopyString(ctx.Params("id")),
@@ -23,9 +24,13 @@ func (s *Server) routeVideoDisable(ctx *fiber.Ctx) (err error) {
 
 	var tx *gorm.DB
 	if state == "disable" {
-		tx = s.db.Delete(where)
+		if perm != "yes" {
+			tx = s.db.Delete(where)
+		} else {
+			tx = s.db.Unscoped().Delete(where)
+		}
 	} else if state == "enable" {
-		tx = s.db.Where(where).Update("deleted_at", nil)
+		tx = s.db.Unscoped().Model(where).Where(where).Update("deleted_at", gorm.Expr("NULL"))
 	} else {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid state (enable/disable)")
 	}
