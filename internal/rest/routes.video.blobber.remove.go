@@ -48,6 +48,17 @@ func (s *Server) routeVideoRemoveBlobber(ctx *fiber.Ctx) (err error) {
 		}
 	}
 
+	// remove queue entry if exists
+	if err = s.db.Where(&common.Queue{
+		VideoID:   videoID,
+		BlobberID: blobberIDU,
+		Action:    common.GetBlob,
+	}).Delete(&common.Queue{}).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+	}
+
 	// add video to blobber 'remove' queue
 	if err = s.db.Create(&common.Queue{
 		VideoID:   videoID,
@@ -57,5 +68,5 @@ func (s *Server) routeVideoRemoveBlobber(ctx *fiber.Ctx) (err error) {
 		return fiber.NewError(fiber.StatusConflict, err.Error())
 	}
 
-	return
+	return ctx.Status(fiber.StatusCreated).SendString("blobber removed from video")
 }

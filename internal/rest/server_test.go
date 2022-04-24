@@ -78,6 +78,34 @@ func (suite *TestSuite) TestVideoCycle() {
 	/// invalid state
 	res = suite.req("DELETE", suite.url(RouteDeleteVideo, VideoIDKey, "hello")+"?state=braun")
 	suite.assert(res, fiber.StatusBadRequest)
+
+	// create video
+	res = suite.jsonReq("POST", suite.url(RouteAddVideo, VideoIDKey, "hello"), newVideoPayload{VideoID: "hello"})
+	suite.assert(res, fiber.StatusCreated)
+	assert.Equal(suite.T(), 1, len(suite.utilFindVideos()))
+
+	/// create blobber
+	// assert that none exist yet
+	assert.Equal(suite.T(), 0, len(suite.utilFindBlobber()))
+
+	// TODO: assert that missing secret and name throws error
+
+	// create blobber
+	res = suite.jsonReq("POST", suite.url(RouteAddBlobber), newBlobberPayload{Name: "blobby", Secret: "blobby"})
+	suite.assert(res, fiber.StatusCreated)
+	assert.Equal(suite.T(), 1, len(suite.utilFindBlobber()))
+
+	/// add blobber to video
+	res = suite.jsonReq("POST", suite.url(RouteAddBlobberToVideo, VideoIDKey, "hello"), newVideoBlobberPayload{BlobberID: 1})
+	suite.assert(res, fiber.StatusCreated)
+	assert.Equal(suite.T(), 1, len(suite.utilFindQueue()))
+
+	/// remove blobber from video
+	res = suite.req("DELETE", "/media/videos/hello/blobber/1")
+	res = suite.req("DELETE", suite.url(RouteRemoveBlobberFromVideo, VideoIDKey, "hello", BlobberIDKey, "1"))
+	suite.assert(res, fiber.StatusCreated)
+	assert.Equal(suite.T(), 1, len(suite.utilFindQueue()))
+
 }
 
 func (suite *TestSuite) assert(res *http.Response, status int) {
@@ -94,6 +122,20 @@ func (suite *TestSuite) utilFindVideos() []*common.Video {
 	err := suite.db.Model(&common.Video{}).Find(&videos).Error
 	assert.NoError(suite.T(), err, "finding videos")
 	return videos
+}
+
+func (suite *TestSuite) utilFindBlobber() []*common.BlobDownloader {
+	var blobber []*common.BlobDownloader
+	err := suite.db.Model(&common.BlobDownloader{}).Find(&blobber).Error
+	assert.NoError(suite.T(), err, "finding blobber")
+	return blobber
+}
+
+func (suite *TestSuite) utilFindQueue() []*common.Queue {
+	var queues []*common.Queue
+	err := suite.db.Model(&common.Queue{}).Find(&queues).Error
+	assert.NoError(suite.T(), err, "finding queues")
+	return queues
 }
 
 func (suite *TestSuite) jsonReq(typ, route string, val interface{}) *http.Response {
