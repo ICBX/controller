@@ -19,7 +19,7 @@ func (s *Server) routeVideoDisable(ctx *fiber.Ctx) (err error) {
 	perm := ctx.Query("perm", "no")
 
 	where := &common.Video{
-		ID: utils.CopyString(ctx.Params("id")),
+		ID: utils.CopyString(ctx.Params(VideoIDKey)),
 	}
 
 	var tx *gorm.DB

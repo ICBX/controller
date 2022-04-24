@@ -10,8 +10,8 @@ import (
 
 func (s *Server) routeVideoRemoveBlobber(ctx *fiber.Ctx) (err error) {
 
-	videoID := utils.CopyString(ctx.Params("id"))
-	blobberID := utils.CopyString(ctx.Params("blobberID"))
+	videoID := utils.CopyString(ctx.Params(VideoIDKey))
+	blobberID := utils.CopyString(ctx.Params(BlobberIDKey))
 
 	// convert blobberID to int
 	blobberIDU, err := convertStringToUint(blobberID)

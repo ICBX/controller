@@ -16,7 +16,7 @@ type BlobberPullResponse struct {
 
 func (s *Server) routeBlobberPull(ctx *fiber.Ctx) (err error) {
 	// get blobber id from route
-	blobberID := utils.CopyString(ctx.Params("id"))
+	blobberID := utils.CopyString(ctx.Params(BlobberIDKey))
 	if blobberID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "Blobber ID is required")
 	}

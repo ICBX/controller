@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -38,6 +39,11 @@ func TestTestSuite(t *testing.T) {
 	})
 }
 
+func (suite *TestSuite) TestURL() {
+	assert.Equal(suite.T(), "/hello/world", suite.url("/:a/:b", "a", "hello", "b", "world"))
+	assert.Equal(suite.T(), "/media/video/hello", suite.url(RouteDeleteVideo, VideoIDKey, "hello"))
+}
+
 func (suite *TestSuite) TestVideoCycle() {
 	var res *http.Response
 	/// create video
@@ -45,32 +51,32 @@ func (suite *TestSuite) TestVideoCycle() {
 	assert.Equal(suite.T(), 0, len(suite.utilFindVideos()))
 
 	// create video
-	res = suite.jsonReq("POST", "/video/add", newVideoPayload{VideoID: "hello"})
+	res = suite.jsonReq("POST", RouteAddVideo, newVideoPayload{VideoID: "hello"})
 	suite.assert(res, fiber.StatusCreated)
 	assert.Equal(suite.T(), 1, len(suite.utilFindVideos()))
 
 	/// disable video
-	res = suite.req("DELETE", "/media/videos/hello")
+	res = suite.req("DELETE", suite.url(RouteDeleteVideo, VideoIDKey, "hello"))
 	suite.assert(res, fiber.StatusCreated)
 	assert.Equal(suite.T(), 0, len(suite.utilFindVideos()))
 
 	/// re-enable video
-	res = suite.req("DELETE", "/media/videos/hello?state=enable")
+	res = suite.req("DELETE", suite.url(RouteDeleteVideo, VideoIDKey, "hello")+"?state=enable")
 	suite.assert(res, fiber.StatusCreated)
 	assert.Equal(suite.T(), 1, len(suite.utilFindVideos()))
 
 	/// completely disable video
-	res = suite.req("DELETE", "/media/videos/hello?perm=yes")
+	res = suite.req("DELETE", suite.url(RouteDeleteVideo, VideoIDKey, "hello")+"?perm=yes")
 	suite.assert(res, fiber.StatusCreated)
 	assert.Equal(suite.T(), 0, len(suite.utilFindVideos()))
 
 	/// re-enable video
-	res = suite.req("DELETE", "/media/videos/hello?state=enable")
+	res = suite.req("DELETE", suite.url(RouteDeleteVideo, VideoIDKey, "hello")+"?state=enable")
 	suite.assert(res, fiber.StatusNotFound)
 	assert.Equal(suite.T(), 0, len(suite.utilFindVideos()))
 
 	/// invalid state
-	res = suite.req("DELETE", "/media/videos/hello?state=braun")
+	res = suite.req("DELETE", suite.url(RouteDeleteVideo, VideoIDKey, "hello")+"?state=braun")
 	suite.assert(res, fiber.StatusBadRequest)
 }
 
@@ -114,4 +120,14 @@ func (suite *TestSuite) reqAdv(typ, route string, h http.Header, body io.Reader)
 	resp, err := suite.s.app.Test(req, -1)
 	assert.NoError(suite.T(), err, "fiber test")
 	return resp
+}
+
+func (suite *TestSuite) url(orig string, replacements ...string) (res string) {
+	res = orig
+	if len(replacements)&1 == 0 {
+		for i := 0; i < len(replacements); i += 2 {
+			res = strings.Replace(res, ":"+replacements[i], replacements[i+1], -1)
+		}
+	}
+	return
 }

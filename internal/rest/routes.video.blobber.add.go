@@ -11,7 +11,7 @@ import (
 )
 
 // rest payloads
-type newVideoBlobberPayload struct {
+type newVideoBlobberPayload struct { // TODO: parameter should be enough
 	BlobberID uint `json:"blobberID"`
 }
 
@@ -21,7 +21,7 @@ func (s *Server) routeVideoAddBlobber(ctx *fiber.Ctx) (err error) {
 		return
 	}
 
-	videoId := utils.CopyString(ctx.Params("id"))
+	videoId := utils.CopyString(ctx.Params(VideoIDKey))
 	if videoId == "" {
 		return fiber.NewError(http.StatusBadRequest, "videoID missing")
 	}
